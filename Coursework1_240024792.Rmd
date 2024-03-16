@@ -1,0 +1,560 @@
+---
+title: "MTH6139 Time Series"
+author:
+- name: Aidan Ashrafi
+date: "March 2024"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  pdf_document:
+    toc: true
+subtitle: Coursework 1
+---
+
+```{r, echo=FALSE}
+htmltools::img(src = knitr::image_uri("QMlogo.png"), 
+               alt = 'logo', 
+               style = 'position:absolute; top:0; right:0; padding:10px; width:30%;')
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction 
+\
+
+This project will aim to forecast US CPI data based on `CPIAUSCL.csv` which has been downloaded from the Federal Reserve Economic Data (FRED) official website. The data in the csv file represents the "Consumer Price Index for All Urban Consumers: All Items in U.S." from January 1947 to February 2024. This data will guide the models created for the forecasts. 
+
+## Rationale 
+\
+
+I chose this dataset, from FRED's official website, because it provides accurate, and complete data regarding CPI with high reoccurring frequency (updated monthly). Furthermore, the decision to include all existing data points from January 1947 to February 2024 was made in pursuit of creating a well-informed forecast. 
+
+
+# Project Details
+\
+
+The goal of this project is to use statistical concepts learned in a Time Series Analysis course and apply it to real-world data, with the objective of ultimately forecasting future data.
+
+## Data Extraction, Data Cleaning, Dataframe & TS Creation 
+
+```{r}
+# Read in the data, and create variables to store CPI values and dates 
+cpi_data <- read.csv('CPIAUCSL.csv')
+cpi_dates<- cpi_data$DATE
+cpi_values<- cpi_data$CPIAUCSL
+
+# Deal with formatting problems using yearmon() from the zoo library 
+formatted_cpi_dates<- zoo::as.yearmon(cpi_dates)
+
+# Create a dataframe to be used for forecasting using Prophet
+cpi.df<- data.frame(ds=formatted_cpi_dates, y=as.vector(cpi_values))
+
+# Create a ts dataset for analysis using time series techniques in R
+# Use year() and month() from lubridate library to help create ts object
+ts_cpi<- ts(cpi.df$y, start=c(lubridate::year(min(cpi.df$ds)), lubridate::month(min(cpi.df$ds))), frequency=12)
+
+# Check to make sure we have created a ts object 
+str(ts_cpi)
+# Check to make the ts object has monthly frequency
+frequency(ts_cpi)
+# Check to make sure the format of the dataframe is as desired
+head(cpi.df)
+```
+\
+Now, we have cleaned the data, and made it possible to conduct time series analysis techniques with a ts object and use regression techniques with a dataframe object. 
+
+\
+
+# Investigating the Trend 
+
+
+\
+
+In order to investigate the trend, we need to create a new dataset that has each year as an index value, instead of a specified date like in a ts object, or in the dataframe created for forecasting with prophet. 
+
+\
+Once, we have created the new dataframe, we will conduct regression analysis techniques, and get a better idea of what type of functions fit the data well. We will look at and compare Adjusted R^2's for Linear, Logarithmic, Quadratic, and Cubic Regression Models. 
+
+## Regression Models 
+```{r}
+# Creating new dataframe for regression analysis
+cpi.df2<- data.frame(ds=as.vector(time(formatted_cpi_dates)), y=as.vector(cpi_values))
+# Linear Regression Model 
+linear_model<-lm(y~ds, data=cpi.df2)
+fitted_values<- fitted.values(linear_model)
+linear_summary<- summary(linear_model)
+linear_adj_r<- linear_summary$adj.r.squared
+# Logarithmic Model 
+log_model<- lm(log(y)~ds, data=cpi.df2)
+log_fitted<-exp(fitted.values(log_model))
+log_summary<- summary(log_model)
+log_adj_r<- log_summary$adj.r.squared
+# Quadratic Model 
+quad_model<- lm(y~ds + I(ds^2), data=cpi.df2)
+quad_fitted<- fitted.values(quad_model)
+quad_summary<- summary(quad_model)
+quad_adj_r<- quad_summary$adj.r.squared
+# Cubic Model 
+cubic_model<- lm(y~ds + I(ds^2) + I(ds^3), data=cpi.df2)
+cubic_fitted<- fitted.values(cubic_model)
+cubic_summary<- summary(cubic_model)
+cubic_adj_r<- cubic_summary$adj.r.squared
+
+```
+\
+
+Creating a visualization with the original data, and fitted values from the respective models will give a better image of which function fits the data the best. 
+
+\
+Fitted values refer to the estimated values produced from each regression model using the original data. 
+```{r}
+# Create the graph 
+plot(cpi.df$ds,cpi.df$y,xlab = "Year", ylab="CPI", main="CPI from Jan 1947 to Feb 2024 with Regressions", type='l', lwd=2)
+lines(cpi.df$ds,fitted_values,col='red', type='l', lwd=2, lty=3)
+lines(cpi.df$ds,log_fitted,col='blue', type='l', lwd=2, lty=3,)
+lines(cpi.df$ds,quad_fitted,col='green', type='l', lwd=2, lty=3)
+lines(cpi.df$ds,cubic_fitted, col='orange', type='l', lwd=2, lty=3)
+legend("topleft", legend=c("CPI", "Linear", "Log", "Quadratic", "Cubic"), col=c("black",  "red", "blue", "green", "orange"), lty = 1:1, cex = 0.8)
+```
+\
+Based on Adjusted R Squared, a polynomial regression model, specifically a cubic regression model, best fits the CPI data. 
+```{r}
+# Based on Adjusted R Squared, a polynomial regression model, specifically a cubic regression model, best fits the CPI data
+linear_adj_r
+log_adj_r
+quad_adj_r
+cubic_adj_r
+```
+\
+
+## Making Predictions with Regression Techniques
+
+
+\
+Fitted values provide insights to how well certain functions fit the original dataset. Predictive values provide forecasting power, and so we will look at predicting CPI for 4 years (48 months) in the future, using `predict()` and several various regression models. 
+```{r}
+# Predict CPI for 48 months in the future, using predict()
+# Ending Index for Monthly CPI Data = most recent data from February 2024 is 926, the frequency for our ts object is 12, so to predict 4 years in the future, we can create an interval that satisfies this. 
+prediction_dates <- c(927:974)
+prediction_data <- data.frame(ds = prediction_dates)
+predict_linear<- predict(linear_model, newdata = prediction_data)
+predict_log<- exp(predict(log_model, newdata = prediction_data))
+predict_quad<- predict(quad_model, newdata = prediction_data)
+predict_cubic<- predict(cubic_model, newdata = prediction_data)
+
+# Find min and max values across observed and forecasted data
+min_value <- min(cpi.df$y, predict_linear, predict_log, predict_quad, predict_cubic)
+max_value <- max(cpi.df$y, predict_linear, predict_log, predict_quad, predict_cubic)
+
+# Extend the range for the graph
+ylim_range <- c(min_value - 5, max_value + 5)
+
+# Plot original CPI data
+plot(cpi.df2$ds, cpi.df2$y, type='l', lwd=2, xlab="Number of Months from January 1947", ylab="CPI", ylim=ylim_range)
+title(main="CPI Trends and Forecasts for 4 years in the future")
+
+# Add linear, log, quadratic, and cubic models for the original data
+lines(cpi.df2$ds, fitted_values, col='red', lwd=2)
+lines(cpi.df2$ds, log_fitted, col='blue', lwd=2)
+lines(cpi.df2$ds, quad_fitted, col='green', lwd=2)
+lines(cpi.df2$ds, cubic_fitted, col='orange', lwd=2)
+
+# Add forecasts based on regression model 
+lines(prediction_data$ds, predict_linear, col='red', lwd=2, )
+lines(prediction_data$ds, predict_log, col='blue', lwd=2, )
+lines(prediction_data$ds, predict_quad, col='green', lwd=2)
+lines(prediction_data$ds, predict_cubic, col='orange', lwd=2)
+abline(v=926, lwd=0.5)
+
+# Add a key 
+legend("topleft", legend=c( "Observed", "Linear", "Log", "Quadratic", "Cubic"), col=c( "black", "red", "blue", "green", "orange"), lty=1, cex=0.65, lwd=2)
+
+max_value
+```
+\
+Based on the output for max_value, it is clear that based on the regression models created, CPI in February 2028, could be as high as 437.115. 
+
+```{r}
+
+```
+
+# Trend, Seasonality, Residual Noise 
+
+## Classical Decomposition 
+```{r}
+# Use Brockwell-Davies (Classical Decomposition) Algorithm to get Trend, seasonality, and residual noise graphs
+# Use decompose() from stats library to execute Classical Decompositon of time series data in R 
+
+# Try both the additive, and multiplicative models 
+brockwell_davies_algo<- stats::decompose(ts_cpi, type='additive')
+brockwell_davies_algo2<- stats::decompose(ts_cpi, type='multiplicative')
+
+plot(brockwell_davies_algo)
+plot(brockwell_davies_algo2)
+
+
+```
+\
+
+The graphs for seasonality and residual noise differ based on whether the model is multiplicative or additive. Taking a quick look at the decomposition graphs allows you to see that the residual noise for the additive model is non-constant/varies over time and the variance of the residuals seem to increase over time, clearly showing the model exhibits heteorskedasticity. This is not good, and it is an issue we will come back to later. 
+
+\
+
+The residual noise for the multiplicative model is centered around 1, and seems to be more random/noisy than the additive model, furthermore, the variance of the residuals fluctuates throughout. 
+
+\
+
+Therefore, solely based on this decomposition, the multiplicative model is better. However, we will investigate this further. 
+
+```{r}
+
+```
+
+
+# Detrending and Differencing 
+
+```{r}
+# To detrend the data, we can kill the trend by differencing the time series
+# We will look at the entire dataset, and a 10 year window of the dataset to hopefully be able to make some conclusions about the trend and seasonality 
+ts_window<- window(ts_cpi, start=c(2014,2), end=c(2024,2)) 
+detrend<- ts(ts_cpi)
+detrend2<- ts(ts_window)
+# Killing the trend, give insights on degree of polynomial trend
+trend_killer<- diff(detrend)
+trend_killer2<- diff(trend_killer)
+trend_killer3<- diff(trend_killer2)
+trend_killer4<- diff(trend_killer3)
+plot(trend_killer, xlab="Number of Months from January 1947", ylab="Residual", main="First Order Differencing")
+plot(trend_killer2, xlab="Number of Months from January 1947", ylab="Residual", main="Second Order Differencing")
+plot(trend_killer3, xlab="Number of Months from January 1947", ylab="Residual", main="Third Order Differencing")
+plot(trend_killer4, xlab="Number of Months from January 1947", ylab="Residual", main="Fourth Order Differencing")
+```
+\
+
+The main purpose from creating these graphs is to see whether differencing will kill the trend, and to see how effective each order differencing is in reducing the variance of the residuals over time. 
+
+\
+
+Based on the information presented in the graphs, it is clear that we do not have a linear trend, as first order differencing is heavily heteroskedastic. 
+
+
+\
+After second and third order differencing, we can see that continuing to higher order differencing does not seem helpful, and could lead to overfitting and some residuals becoming larger. Therefore, in support of the Adjusted R-squared conclusion, a positive polynomial trend of degree 2 or 3 much better follows the CPI data than a linear trend. 
+
+\
+
+```{r}
+# Another way to perform the backshift operator, kill the trend 
+backshift<- lag(detrend,-1)
+kill_trend<- detrend - backshift 
+all.equal(kill_trend, trend_killer)
+
+# Calculate Seasonal Difference, give insights on seasonality 
+# Seasonal difference for the whole data, as our data is monthly data
+# 24 month pattern, 12 month pattern, 6 month pattern 
+lagged_diff<- diff(detrend,24)
+lagged_diff2<- diff(detrend,12)
+lagged_diff3<- diff(detrend,6)
+
+
+# Seasonal difference for the past 10 years
+
+lagged_diff4<- diff(detrend2, 24)
+lagged_diff5<- diff(detrend2,12)
+lagged_diff6<- diff(detrend2, 6)
+
+# Graph them 
+plot(lagged_diff, xlab="Number of Months from January 1947", main=" CPI Seasonal Lagged Difference")
+lines(lagged_diff2, col='red')
+lines(lagged_diff3, col='blue')
+legend("topleft", legend=c( "2 Year Seasonality", "Annual Seasonality", "Semi-Annual Seasonality"), col=c( "black", "red", "blue"), lty=1, cex=0.50, lwd=2)
+
+plot(lagged_diff4, xlab="Number of Months from February 2014", main= " 10 Year CPI Seasonal Lagged Difference")
+lines(lagged_diff5, col='red')
+lines(lagged_diff6, col='blue')
+legend("topleft", legend=c( "2 Year Seasonality", "Annual Seasonality", "Semi-Annual Seasonality"), col=c( "black", "red", "blue"), lty=1, cex=0.50, lwd=2)
+
+```
+\
+
+The main purpose for creating these graphs is to see if the time series exhibits clear seasonality. Based on these graphs, it is not unreasonable to make an assumption that CPI is dominated by annual seasonality. The line in Red is annual seasonality, and as we can see, the blue and black lines are almost proportional to the red line, exhibiting the same pattern but at a different scale. This gives us insight that we can scale the seasonality, to being semi-annual or biennial and therefore can strongly consider an annual seasonality for CPI. 
+
+\
+
+The seasonal fluctuations and the underlying positive trend, tend to increase in size as the time series values increase, therefore a multiplicative model is likely more appropriate. 
+
+
+# Box Cox Transformation 
+
+\
+
+We will now determine which model is most appropriate using the Box-Cox transformation, Simple-Log transformation, and information about the seasonality and trend from above. 
+\
+
+## Testing for most appropriate model 
+
+```{r}
+# Box-Cox Transformation 
+lambda = forecast::BoxCox.lambda(ts_cpi)
+lambda
+CPI_timeseries= forecast::BoxCox(ts_cpi,lambda)
+
+# Simple log Transformation 
+CPI_timeseries_log = log(ts_cpi)
+plot(CPI_timeseries_log, ylim= c(0,17), ylab="Transformed CPI Values")
+lines(CPI_timeseries, col='red')
+title(main="Box-Cox and Simple Log Transformations")
+legend("topleft", legend = c("Box-Cox", "Simple Log"), col=c("red", "black"), cex=0.5, lwd=2, lty=1)
+
+```
+\
+
+Based on this graph, it is clear that a multiplicative model should be used for time series analysis of CPI data. After transforming the time series to a simple-log model, the underlying trend is almost flat/detrended, essentially showing a non-linear, likely exponential proportional growth rate. 
+
+\
+
+This supports the conclusion presented by the decomposition, which is that the residual noise of the multiplicative model is more random and does not have increasing variance over time compared to the additive model. 
+
+
+# Moving Average Methods 
+\
+Moving Averages help to better understand underlying trends, we will take a look at the Spencer Filter, Exponential Smoothing, and the Holt-Winters Method. 
+\
+
+## Spencer Filter 
+
+\
+We will take a look at the last 4 years as a window of time to make the visualization more clear. As a result of the nature of using a moving average filter, there will not be valid values near the boundaries of the data. 
+```{r} 
+library(signal)
+#Spencer Filter using the last 4 years as a window of time, last index for February 2024 data point was 926.
+x = cpi.df$y[878:926]
+
+# Create the window for the visualization 
+ts_zoom<- window(ts_cpi, start=c(2020,2), end=c(2024,2))
+
+#Graph CPI data, Apply and Graph Spencer Filter 
+plot(ts_zoom, type='l', lwd=2, main="February 2020 to February 2024 CPI", ylab="CPI")
+spencer_filter=signal::spencer(x)
+lines(stats::filter(ts_zoom, spencerFilter()),  type="l", col="red", lwd=3, lty=3)
+
+legend("topleft", legend=c("Observed", "Spencer Filter"), col=c("black", "red"), lty=1, lwd=2)
+
+
+```
+\
+
+As we can see from the graph, the Spencer filter helps smooth out short-term fluctuations and highlight the overall trend. There is a clear and obvious positive trend between CPI data and time. 
+
+
+## Exponential Smoothing, Holt's Linear Trend Method, & Holt-Winters Method
+
+
+\
+
+Exponential smoothing is a weighted moving averaging method. As a result of its nature, exponential smoothing fitted values will always be below the data if there is a clear upward, as it will not take into account the directional movement of the data. 
+\
+
+In addition, exponential smoothing does not provide any forecasting power in the form of new information. Exponential smoothing will forecast all future points, to be equivalent to the last available data point. 
+Therefore, it is not effective for forecasting and not useful in situations with clear trends. 
+
+\
+
+Holt's Linear Trend Method accounts for the trend that exponential smoothing neglects, but it neglects seasonality. 
+
+\
+
+Holt-Winters Method accounts for the trend and seasonality. 
+
+\
+
+We have determined a key insight thus far, through analysis of the trend and seasonality, that the time series model should be multiplicative as CPI data resembles a proportionally increasing trend with respect to time. Therefore, we will need to specify in the methods, that we are using a multiplicative model. 
+
+```{r}
+#Holt-Winters Method & Exponential Smoothing 
+
+# Setting gamma, and beta to false reduces the model to simple exponential smoothing 
+exponential_smoothing<- HoltWinters(ts_cpi, beta=FALSE, gamma=FALSE, seasonal="multiplicative")
+fitted_exponential<- fitted(exponential_smoothing)[, "xhat"]
+
+# Setting gamma to false, but not gamma means we are considering the trend component, but not seasonality 
+trend_holt_winters<- HoltWinters(ts_cpi, gamma=FALSE, seasonal="multiplicative")
+fitted_w_trend<- fitted(trend_holt_winters)[,"xhat"]
+
+# Full Holt-Winters method including seasonality and trend 
+full_holt_winters<- HoltWinters(ts_cpi, seasonal='multiplicative')
+fitted_full_holt<- fitted(full_holt_winters)[,"xhat"]
+```
+\
+The dataset is large, so in order for us to get a good visual understanding of the methods, we will create a smaller window of time to plot and visualize the methods 
+```{r}
+# Create a smaller window of time to plot and visualize the methods 
+ts_zoomed<- window(ts_cpi, start=c(2023,2), end=c(2024,2))
+plot(ts_zoomed, xlab="Time in Decimal Form", ylab="CPI", lwd=2)
+title(main="Zoomed Comparison of Holt-Winters Models",sub="January 1st, 2023 is equivalent to 2023.0")
+
+# Add exponential smoothing, and Holt Winters fitted values
+lines(fitted_exponential, col="red", lwd=2, lty=3)
+lines(fitted_w_trend, col="green", lwd=2, lty=3)
+lines(fitted_full_holt, col='blue', lwd=2, lty=3)
+legend("topleft", legend=c("Observed", "Exponential Smoothing", "Holt's Linear Trend", "Holt-Winters Method"), col=c("black", "red", "green", "blue"), cex = 0.5, lty=1, lwd=2)
+```
+\
+As we can see from the graph, exponential smoothing always underestimates upward trends, and works best with underlying data that doesn't exhibit much of a trend. The best moving average method seems to be the full Holt-Winters as it takes into account the underlying trend and seasonality. 
+\
+
+# Forecasting Holt-Winters and Exponential Smoothing 
+
+\
+We will forecast CPI based on exponential smoothing, Holt's Linear Trend Method, and Holt-Winters Method for 4 years in the future. 
+```{r}
+prediction_exp_smoothing<- predict(exponential_smoothing, 48)
+prediction_w_trend<- predict(trend_holt_winters, 48)
+prediction_holt_winters<- predict(full_holt_winters,48)
+
+max_predict<- max(prediction_exp_smoothing, prediction_w_trend, prediction_holt_winters)
+
+max_predict
+
+ylim_range <- c(20, max_predict + 5)
+```
+\
+The value of max_predict tells us based on these models the CPI 4 years from February 2024, in February 2028, could be as high as 360.4346. 
+\
+We will not consider creating a min_predict based on these models because exponential smoothing takes the value of the last observation, and so it will not provide any meaningful insights. 
+```{r}
+
+# Graph the Time Series, and Forecasts 
+plot(ts_cpi, ylim= ylim_range, lwd=2)
+title(main="CPI Trends and Forecasts for 4 years in the future")
+lines(prediction_exp_smoothing, col='red', lwd=2, lty=1)
+lines(prediction_w_trend, col='green', lwd=2, lty=1)
+lines(prediction_holt_winters, col='blue', lwd=2, lty=3)
+```
+
+```{r}
+# First 6 months of predictions, further details on the forecast
+head(prediction_exp_smoothing)
+head(prediction_w_trend)
+head(prediction_holt_winters)
+
+
+```
+\
+As we can see based on this output, it is clear that the exponential smoothing method provides a flat forecasting rate, equal to the last observed value in the data. Also, the values for Holt's Linear Trend and Holt-Winters Method are quite close often times. 
+
+
+# Prophet Forecasting 
+
+\
+
+Thus far, we have conducted forecasting using regression techniques, and moving average methods. Now, we will use Meta's Prophet forecasting system to get additional forecasting insights. 
+
+\
+
+
+We will not test and look at Meta's Prophet forecasting with respect to additive models, because we have clearly determined, our time series data should follow a multiplicative model. However, we will take a look at yearly seasonality, vs. daily, weekly, & yearly seasonality. 
+```{r}
+# Create Prophet Forecast 
+
+# Add parameters for multiplicative model and yearly seasonality
+prophet_forecaster = prophet::prophet(cpi.df, seasonality.mode = "multiplicative", daily.seasonality = FALSE, weekly.seasonality = FALSE, yearly.seasonality = TRUE)
+
+# Add parameters for multiplicative model and daily, weekly, and yearly seasonality 
+prophet_forecaster2 = prophet::prophet(cpi.df, seasonality.mode="multiplicative",daily.seasonality=TRUE, weekly.seasonality=TRUE, yearly.seasonality=TRUE )
+```
+
+```{r}
+# Create future dataframes for Prophet Predictions considering multiplicative model and yearly seasonality 
+prophet_future_dates1 = prophet::make_future_dataframe(prophet_forecaster, periods=8, freq="month")
+prophet_future_dates2 = prophet::make_future_dataframe(prophet_forecaster, periods=48, freq="month")
+
+# Create future dataframes for Prophet Predictions considering multiplicative model and daily, weekly, and yearly seasonality 
+prophet_future_dates3 = prophet::make_future_dataframe(prophet_forecaster2, periods=8, freq="month")
+prophet_future_dates4 = prophet::make_future_dataframe(prophet_forecaster2, periods=48, freq="month")
+
+```
+
+```{r}
+# Create the predictions 
+prediction_8months = predict(prophet_forecaster, prophet_future_dates1)
+prediction_4years = predict(prophet_forecaster, prophet_future_dates2)
+prediction_8months_2 = predict(prophet_forecaster2, prophet_future_dates3)
+prediction_4years_2 = predict(prophet_forecaster2, prophet_future_dates4)
+
+prediction_values1<- prediction_8months$yhat
+prediction_values2<- prediction_8months_2$yhat
+all.equal(prediction_values1, prediction_values2)
+
+prediction_values3<- prediction_4years$yhat
+prediction_values4<- prediction_4years_2$yhat
+all.equal(prediction_values3, prediction_values4)
+
+# This tells us there is little difference between the model with just yearly seasonality, and the model with daily, weekly, & yearly seasonality across both forecasting periods 
+```
+
+
+
+```{r}
+eightmonths<- tail(prediction_values1, 8)
+eightmonths2<- tail(prediction_values2, 8)
+fouryears<- tail(prediction_values3, 48)
+fouryears2<- tail(prediction_values4, 48)
+max(eightmonths, eightmonths2)
+max(fouryears, fouryears2)
+
+
+
+
+
+```
+\
+This information tells us that using Meta's Prophet Forecasting System, the CPI in 8 months from now, adjusting for seasonality, could be 292.536. Also, this information tells us that the CPI 4 years from now, adjusting for seasonality could be 309.9358. 
+
+```{r}
+library(ggplot2)
+# Plot them 
+graph_8months<- plot(prophet_forecaster,prediction_8months)
+graph_8months + labs(title="Prophet Forecast for CPI for next 8 months", x = "Time", y= "Yearly Seasonally Adjusted CPI")
+graph_4years<- plot(prophet_forecaster,prediction_4years)
+graph_4years + labs(title="Prophet Forecast for CPI for next 4 years", x = "Time", y= "Yearly Seasonally Adjusted CPI")
+
+graph_8months_2<- plot(prophet_forecaster2,prediction_8months_2)
+graph_8months_2 + labs(title="Prophet Forecast for CPI for next 8 months", x = "Time", y= "Daily, Weekly, & Yearly Seasonally Adjusted CPI")
+
+graph_4years_2<- plot(prophet_forecaster2, prediction_4years_2)
+graph_4years_2 + labs(title="Prophet Forecast for CPI for next 4 years", x = "Time", y= "Daily, Weekly, & Yearly Seasonally Adjusted CPI")
+```
+
+
+# Conclusion and Takeaways 
+
+Through regression analysis, decomposition of time series, differencing, detrending, and Box-Cox & Simple Log Transformations, it is clear that CPI data with respect to time resembles a non-linear relationship. 
+\
+Based on the findings, there seems to be a exponential relationship, with a polynomial of order 2-3, describing the complex trend between CPI and time. Furthermore, it is clear that the model used for time series analysis of CPI data should be multiplicative as the residuals from the additive model are heteroskedastic, and the multiplicative model handles the noise better. 
+\
+
+Through forecasting using regression techniques, moving average methods, and Meta's Prophet forecasting system, valuable insights about CPI data can be made. Forecasting with regression techniques has advantages of simplicity, but it is a parametric method of estimation so there is a function that the CPI data needs to ultimately fit, which may not necessarily be the case with such a large economic indicator.
+\
+Forecasting with moving average methods smooths the data, and emphasizes the underlying trend, in addition, the Holt-Winters Method accounts for seasonality and trend, so these predictions are likely more justifiable than the regression predictions. Forecasting with Meta's Prophet forecasting system also accounts for seasonality and trend, and therefore seem justifiable as well. 
+\
+Thus, it is not unreasonable to consider Meta's Prophet forecasting system and Holt-Winters method as valuable insights and information in efforts to predict future CPI, as their respective predictive powers seem justifiable. 
+
+Overall, because of the complexity of CPI as a economic indicator, there is a lot of uncertainty that can influence CPI data, so in reality the predictive power of these forecasts is likely not to be great, but they provide good insights into CPI data and how to further go about analyzing time series data. 
+
+Thank you for taking the time to look at my time series analysis project. Please feel free to reach out to me at a.a.ashrafi@wustl.edu with any questions or inquiries. 
+
+::: {.floatting}
+```{r echo=FALSE, out.extra='style="float:left; padding:20px"', out.width='20%'}
+knitr::include_graphics("SteveJobs.jpg")
+```
+<br>
+<br>
+
+####  *"Stay hungry. Stay foolish. Never let go of your appetite to go after new ideas, new experiences, and new adventures."*
+<br>
+― [Steve Jobs](https://en.wikipedia.org/wiki/Steve_Jobs)
+:::

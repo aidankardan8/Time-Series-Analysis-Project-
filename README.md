@@ -24,6 +24,7 @@ Furthermore, I moved onto using Moving Average Methods, like the Spencer Filter,
 Finally, I conducted forecasting using Meta's Prophet forecasting system. 
 
 **Conclusion**
+
 Through regression analysis, decomposition of time series, differencing, detrending, and Box-Cox & Simple Log Transformations, it is clear that CPI data with respect to time resembles a non-linear relationship.
 Based on the findings, there seems to be a exponential relationship, with a polynomial of order 2-3, describing the complex trend between CPI and time. Furthermore, it is clear that the model used for time series analysis of CPI data should be multiplicative as the residuals from the additive model are heteroskedastic, and the multiplicative model handles the noise better.
 Through forecasting using regression techniques, moving average methods, and Meta’s Prophet forecasting system, valuable insights about CPI data can be made. Forecasting with regression techniques has advantages of simplicity, but it is a parametric method of estimation so there is a function that the CPI data needs to ultimately fit, which may not necessarily be the case with such a large economic indicator.

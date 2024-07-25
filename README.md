@@ -11,7 +11,7 @@ Then I used prediction techniques to forecast future CPI using regression analys
 
 Next, I used classical decomposition techniques to get trend, seasonality, and noise graphs for the data to determine whether an additive or multiplicative model was best fit. 
 
-To investigate the data further, I used detrending and differencing techniques. The result was the a polynomial of order 2-3 seemed to be the best fit for the trend. 
+To investigate the data further, I used detrending and differencing techniques. The result was that a polynomial of order 2-3 seemed to be the best fit for the trend. 
 
 Taking a deeper dive into seasonality, I used seasonal lagged differencing for different time intervals to try and make a conclusion about whether or not CPI exhibits annual seasonality. 
 

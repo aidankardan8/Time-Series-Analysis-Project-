@@ -33,7 +33,7 @@ Thus, it is not unreasonable to consider Meta’s Prophet forecasting system and
 
 Overall, because of the complexity of CPI as a economic indicator, there is a lot of uncertainty that can influence CPI data, so in reality the predictive power of these forecasts is likely not to be great, but they provide good insights into CPI data and how to further go about analyzing time series data.
 
-Thank you for taking the time to look at my time series analysis project. Please feel free to reach out to me at a.a.ashrafi@wustl.edu with any questions or inquiries.
+Thank you for taking the time to look at my time series analysis project. Please feel free to reach out to me at aidan.kardan@wustl.edu with any questions or inquiries.
 
 
 

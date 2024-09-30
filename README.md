@@ -1,40 +1,60 @@
-# Time-Series-Analysis-Project-
+# **Time Series Analysis Project: Forecasting US CPI**
 
-This is a repository for my Time Series Analysis Project in R. This project aims to forecast US CPI using data from FRED. The data in the csv file represents the “Consumer Price Index for All Urban Consumers: All Items in U.S.” from January 1947 to February 2024. This data will guide the models created for the forecasts.
+### **Overview**
+This repository contains my Time Series Analysis project, focusing on forecasting the **Consumer Price Index (CPI) for All Urban Consumers: All Items in U.S. (US CPI)**. The data, sourced from **FRED**, spans from **January 1947 to February 2024**. The goal of the project is to apply statistical and time series analysis techniques to this real-world economic data in order to build predictive models and gain insights into future CPI trends.
 
-The goal of this project is to use statistical concepts learned in a Time Series Analysis course and apply it to real-world data, with the objective of ultimately forecasting future data.
+### **Project Objectives**
+- **Data Cleaning & Preprocessing**: Address formatting issues and prepare the data for analysis, ensuring time series integrity.
+- **Regression Analysis**: Explore potential functional forms that best describe the relationship between CPI and time.
+- **Classical Decomposition**: Separate the CPI data into **trend**, **seasonality**, and **noise** components to determine the best-fit model—additive or multiplicative.
+- **Time Series Techniques**: Apply detrending, differencing, and polynomial fitting to capture the underlying structure of the data.
+- **Model Forecasting**: Use various statistical and machine learning models, including moving averages, exponential smoothing, Holt-Winters, and Meta’s Prophet forecasting system, to forecast future CPI.
 
-Initially, there was a need to clean the data and deal with formatting issues that sometimes arise when dealing with time series data. 
+### **Methodology**
+1. **Data Cleaning & Preprocessing**:
+   - Cleaned the time series data and addressed any formatting inconsistencies.
+   - Created a new, structured dataframe for use in regression and forecasting models.
 
-After creating the new dataframe, I conducted regression analysis techniques to get an idea of what kind of function could potentially fit the data well. 
-Then I used prediction techniques to forecast future CPI using regression analysis. 
+2. **Regression Analysis**:
+   - Conducted exploratory regression analysis to identify potential functional forms, such as polynomial regressions of order 2-3, that best fit the CPI data over time.
+   - Used **prediction techniques** to forecast future CPI values based on regression models.
 
-Next, I used classical decomposition techniques to get trend, seasonality, and noise graphs for the data to determine whether an additive or multiplicative model was best fit. 
+3. **Classical Decomposition**:
+   - Decomposed the time series data into **trend**, **seasonality**, and **noise** components using **additive** and **multiplicative** models.
+   - Analyzed the results to determine the superiority of the **multiplicative model** due to its better handling of residual noise and heteroskedasticity.
 
-To investigate the data further, I used detrending and differencing techniques. The result was that a polynomial of order 2-3 seemed to be the best fit for the trend. 
+4. **Detrending & Differencing**:
+   - Applied **detrending** and **differencing** techniques to better understand the underlying data structure and detect any non-stationarity.
+   - Found that a polynomial of order 2-3 was the best fit for capturing the trend in the CPI data.
 
-Taking a deeper dive into seasonality, I used seasonal lagged differencing for different time intervals to try and make a conclusion about whether or not CPI exhibits annual seasonality. 
+5. **Transformations**:
+   - Performed **Box-Cox** and **log transformations** to stabilize variance and justify the use of a multiplicative model.
+   - Log transformation showed that the underlying trend is likely exponential, as the data became almost flat (detrended) after the transformation.
 
-In addition, I took a look at transforming the data, to further justify the choice of a multiplicative model as well, I used Box-Cox and Simple log transformations. After transforming the data into a simple log model, the underlying trend was almost flat/detrended, likely showing a exponentially proportional growth rate. 
+6. **Moving Average Methods**:
+   - Used various **moving average techniques**, including the **Spencer Filter**, **Exponential Smoothing**, and **Holt-Winters Method**, to smooth the data and produce more robust forecasts.
+   - Forecasted future CPI values using **Holt-Winters** and **Exponential Smoothing** methods.
 
-This supported the conclusion presented by the decomposition, which is that the residual noise of the multiplicative model is more random and does not have increasing variance over time compared to the additive model.
+7. **Advanced Forecasting**:
+   - Implemented **Meta's Prophet forecasting system**, which accounts for both trend and seasonality, providing another layer of predictive analysis.
 
-Furthermore, I moved onto using Moving Average Methods, like the Spencer Filter, Exponential Smoothing, Holt’s Linear Trend Method, & Holt-Winters Method. Then, I forecasted CPI data using Holt-Winters and Exponential Smoothing. 
+### **Key Findings**
+- The data exhibits a **non-linear relationship** between CPI and time, with a **multiplicative model** being the best fit due to better handling of residual noise.
+- Polynomial regression of **order 2-3** was effective in capturing the trend component.
+- **Seasonality** was observed, and lagged differencing confirmed annual periodicity in CPI.
+- Both **Meta’s Prophet** and **Holt-Winters** methods produced reliable forecasts, as they account for both seasonality and trend.
 
-Finally, I conducted forecasting using Meta's Prophet forecasting system. 
+### **Conclusion**
+This project highlights the complexity of CPI as an economic indicator. While the predictive models provide valuable insights into CPI data trends, the inherent uncertainty in economic forecasting means that these predictions should be used cautiously. The **multiplicative model**, along with **Holt-Winters** and **Meta’s Prophet** methods, proved to be strong approaches for understanding CPI trends and producing forecasts.
 
-**Conclusion**
+### **Future Work**
+Future improvements to this project will involve:
+- Exploring **ARIMA** and **GARCH** models for volatility and further refinement of trend forecasts.
+- Implementing **ensemble methods** to combine multiple models for enhanced predictive accuracy.
+- Applying **machine learning techniques** to explore non-linear relationships in the data.
 
-Through regression analysis, decomposition of time series, differencing, detrending, and Box-Cox & Simple Log Transformations, it is clear that CPI data with respect to time resembles a non-linear relationship.
-Based on the findings, there seems to be a exponential relationship, with a polynomial of order 2-3, describing the complex trend between CPI and time. Furthermore, it is clear that the model used for time series analysis of CPI data should be multiplicative as the residuals from the additive model are heteroskedastic, and the multiplicative model handles the noise better.
-Through forecasting using regression techniques, moving average methods, and Meta’s Prophet forecasting system, valuable insights about CPI data can be made. Forecasting with regression techniques has advantages of simplicity, but it is a parametric method of estimation so there is a function that the CPI data needs to ultimately fit, which may not necessarily be the case with such a large economic indicator.
-Forecasting with moving average methods smooths the data, and emphasizes the underlying trend, in addition, the Holt-Winters Method accounts for seasonality and trend, so these predictions are likely more justifiable than the regression predictions. Forecasting with Meta’s Prophet forecasting system also accounts for seasonality and trend, and therefore seem justifiable as well.
-Thus, it is not unreasonable to consider Meta’s Prophet forecasting system and Holt-Winters method as valuable insights and information in efforts to predict future CPI, as their respective predictive powers seem justifiable.
-
-Overall, because of the complexity of CPI as a economic indicator, there is a lot of uncertainty that can influence CPI data, so in reality the predictive power of these forecasts is likely not to be great, but they provide good insights into CPI data and how to further go about analyzing time series data.
-
-Thank you for taking the time to look at my time series analysis project. Please feel free to reach out to me at aidan.kardan@wustl.edu with any questions or inquiries.
-
+### **Contact**
+If you have any questions or would like to discuss this project further, feel free to reach out to me at [aidan.kardan@wustl.edu](mailto:aidan.kardan@wustl.edu).
 
 
 
